@@ -1,13 +1,23 @@
-use std::io::{Write};
+use std::io::{Write, BufReader, BufRead};
 use std::net::{TcpListener, TcpStream};
 
 fn handle_connection(mut stream: TcpStream) {
     println!("accepted new connection");
 
-    // let buff_reader = BufReader::new(&mut stream);
-    // println!("{:?}", buff_reader.lines());
+    let buff_reader = BufReader::new(&mut stream);
+    let http_request: Vec<_> = buff_reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
 
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
+    let (method, rest) = http_request.first().unwrap().split_once(" ").expect("Unable to get Method from Http request");
+    let (path, _) = rest.split_once(" ").expect("Unable to get Path from Http request");
+
+    let mut response = "HTTP/1.1 404 Not Found\r\n\r\n";
+    if path == "/" {
+        response = "HTTP/1.1 200 OK\r\n\r\n";
+    }
 
     stream.write_all(response.as_bytes()).unwrap();
 }
