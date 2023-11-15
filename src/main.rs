@@ -1,5 +1,4 @@
 use std::io::{BufRead, BufReader, Read, Write};
-// Uncomment this block to pass the first stage
 use std::net::{TcpListener, TcpStream};
 
 fn handle_connection(mut stream: TcpStream) {
@@ -23,7 +22,7 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut stream) => {
+            Ok(stream) => {
                 handle_connection(stream);
             }
             Err(e) => {
