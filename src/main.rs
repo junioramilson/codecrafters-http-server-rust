@@ -1,24 +1,62 @@
+use nom::{AsBytes, ExtendInto};
 use std::fmt::format;
-use std::io::{Write, BufReader, BufRead};
+use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
+use std::ops::Add;
 
-fn build_response(status: &str, content_type: Option<&str>, content: Option<&str>) -> String {
-    let mut response_lines = Vec::<String>::new();
-    response_lines.push(format!("HTTP/1.1 {:}", status));
+struct Response {
+    pub body: Option<String>,
+    pub content_type: Option<String>,
+    pub status_code: StatusCodes,
+}
 
-    if content_type.is_some() {
-        response_lines.push(format!("Content-Type: {}", content_type.unwrap()));
+enum StatusCodes {
+    Ok = 200,
+    NotFound = 404,
+}
+
+impl Response {
+    pub fn new(
+        status_code: StatusCodes,
+        content_type: Option<String>,
+        body: Option<String>,
+    ) -> Response {
+        Response {
+            body,
+            content_type,
+            status_code,
+        }
     }
 
-    if content.is_some() {
-        response_lines.push(format!("Content-Length: {}\r\n", content.unwrap().bytes().len()));
-        response_lines.push(content.unwrap().to_string());
+    pub fn build(self) -> Vec<u8> {
+        let response = b"HTTP/1.1 ";
+        let mut response_vec = response.to_vec();
+
+        match self.status_code {
+            StatusCodes::Ok => response_vec.extend_from_slice(b"200 OK"),
+            StatusCodes::NotFound => response_vec.extend_from_slice(b"404 Not Found"),
+        };
+
+        response_vec.extend_from_slice(b"\r\n");
+
+        if self.content_type.is_some() {
+            let content_type = format!("Content-Type: {}", self.content_type.unwrap());
+            response_vec.extend_from_slice(content_type.as_bytes());
+            response_vec.extend_from_slice(b"\r\n");
+        }
+
+        if self.body.is_some() {
+            let body_content = self.body.unwrap().clone();
+            let content_length = format!("Content-Length: {}", body_content.len());
+            response_vec.extend_from_slice(content_length.as_bytes());
+            response_vec.extend_from_slice(b"\r\n\r\n");
+            response_vec.extend_from_slice(body_content.as_bytes());
+        }
+
+        response_vec.extend_from_slice(b"\r\n");
+
+        response_vec
     }
-
-    response_lines.push(String::from("\r\n"));
-    let response = response_lines.join("\r\n");
-
-    response
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -31,20 +69,72 @@ fn handle_connection(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty())
         .collect();
 
-    let (method, rest) = http_request.first().unwrap().split_once(" ").expect("Unable to get Method from Http request");
-    let (path, _) = rest.split_once(" ").expect("Unable to get Path from Http request");
+    let (method, rest) = http_request
+        .first()
+        .unwrap()
+        .split_once(" ")
+        .expect("Unable to get Method from Http request");
+    let (path, _) = rest
+        .split_once(" ")
+        .expect("Unable to get Path from Http request");
 
-    match path {
-        "/" => {
-            stream.write_all(build_response("200 OK", None, None).as_bytes()).unwrap();
-        },
-        path if path.contains("/echo/") => {
+    let headers = http_request
+        .iter()
+        .skip(1)
+        .map(|header| header.split_once(": ").unwrap())
+        .collect::<Vec<_>>();
+
+    match (path, method) {
+        ("/", "GET") => {
+            stream
+                .write_all(
+                    Response::new(StatusCodes::Ok, None, None)
+                        .build()
+                        .as_bytes(),
+                )
+                .unwrap();
+        }
+        ("/user-agent", "GET") => {
+            let (_, user_agent_value) = headers
+                .iter()
+                .find(|(header, _)| header == &"User-Agent")
+                .unwrap();
+
+            stream
+                .write_all(
+                    Response::new(
+                        StatusCodes::Ok,
+                        Some(String::from("text/plain")),
+                        Some(user_agent_value.to_string()),
+                    )
+                    .build()
+                    .as_bytes(),
+                )
+                .unwrap();
+        }
+        (path, method) if path.contains("/echo/") && method == "GET" => {
             let (_, echo_value) = path.split_once("/echo/").unwrap();
 
-            stream.write_all(build_response("200 OK", Some("text/plain"), Some(echo_value)).as_bytes()).unwrap();
+            stream
+                .write_all(
+                    Response::new(
+                        StatusCodes::Ok,
+                        Some(String::from("text/plain")),
+                        Some(String::from(echo_value)),
+                    )
+                    .build()
+                    .as_bytes(),
+                )
+                .unwrap();
         }
         _ => {
-            stream.write_all(build_response("404 Not Found", None, None).as_bytes()).unwrap();
+            stream
+                .write_all(
+                    Response::new(StatusCodes::NotFound, None, None)
+                        .build()
+                        .as_bytes(),
+                )
+                .unwrap();
         }
     }
 }
