@@ -1,8 +1,6 @@
 use nom::{AsBytes, ExtendInto};
-use std::fmt::format;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
-use std::ops::Add;
 
 struct Response {
     pub body: Option<String>,
@@ -74,6 +72,7 @@ fn handle_connection(mut stream: TcpStream) {
         .unwrap()
         .split_once(" ")
         .expect("Unable to get Method from Http request");
+
     let (path, _) = rest
         .split_once(" ")
         .expect("Unable to get Path from Http request");
@@ -139,18 +138,18 @@ fn handle_connection(mut stream: TcpStream) {
     }
 }
 
-fn main() {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
+#[tokio::main]
+async fn main() {
     println!("Logs from your program twill appear here!");
-
-    // Uncomment this block to pass the first stage
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                handle_connection(stream);
+    loop {
+        match listener.accept() {
+            Ok((stream, _)) => {
+                tokio::spawn(async move {
+                    handle_connection(stream);
+                });
             }
             Err(e) => {
                 println!("error: {}", e);
