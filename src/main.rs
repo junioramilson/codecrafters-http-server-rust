@@ -62,78 +62,78 @@ fn handle_connection(mut stream: TcpStream) {
 
     let buff_reader = BufReader::new(&mut stream);
     let http_request: Vec<_> = buff_reader
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
+      .lines()
+      .map(|result| result.unwrap())
+      .take_while(|line| !line.is_empty())
+      .collect();
 
     let (method, rest) = http_request
-        .first()
-        .unwrap()
-        .split_once(" ")
-        .expect("Unable to get Method from Http request");
+      .first()
+      .unwrap()
+      .split_once(" ")
+      .expect("Unable to get Method from Http request");
 
     let (path, _) = rest
-        .split_once(" ")
-        .expect("Unable to get Path from Http request");
+      .split_once(" ")
+      .expect("Unable to get Path from Http request");
 
     let headers = http_request
-        .iter()
-        .skip(1)
-        .map(|header| header.split_once(": ").unwrap())
-        .collect::<Vec<_>>();
+      .iter()
+      .skip(1)
+      .map(|header| header.split_once(": ").unwrap())
+      .collect::<Vec<_>>();
 
     match (path, method) {
         ("/", "GET") => {
             stream
-                .write_all(
-                    Response::new(StatusCodes::Ok, None, None)
-                        .build()
-                        .as_bytes(),
-                )
-                .unwrap();
+              .write_all(
+                  Response::new(StatusCodes::Ok, None, None)
+                    .build()
+                    .as_bytes(),
+              )
+              .unwrap();
         }
         ("/user-agent", "GET") => {
             let (_, user_agent_value) = headers
-                .iter()
-                .find(|(header, _)| header == &"User-Agent")
-                .unwrap();
+              .iter()
+              .find(|(header, _)| header == &"User-Agent")
+              .unwrap();
 
             stream
-                .write_all(
-                    Response::new(
-                        StatusCodes::Ok,
-                        Some(String::from("text/plain")),
-                        Some(user_agent_value.to_string()),
-                    )
+              .write_all(
+                  Response::new(
+                      StatusCodes::Ok,
+                      Some(String::from("text/plain")),
+                      Some(user_agent_value.to_string()),
+                  )
                     .build()
                     .as_bytes(),
-                )
-                .unwrap();
+              )
+              .unwrap();
         }
         (path, method) if path.contains("/echo/") && method == "GET" => {
             let (_, echo_value) = path.split_once("/echo/").unwrap();
 
             stream
-                .write_all(
-                    Response::new(
-                        StatusCodes::Ok,
-                        Some(String::from("text/plain")),
-                        Some(String::from(echo_value)),
-                    )
+              .write_all(
+                  Response::new(
+                      StatusCodes::Ok,
+                      Some(String::from("text/plain")),
+                      Some(String::from(echo_value)),
+                  )
                     .build()
                     .as_bytes(),
-                )
-                .unwrap();
+              )
+              .unwrap();
         }
         _ => {
             stream
-                .write_all(
-                    Response::new(StatusCodes::NotFound, None, None)
-                        .build()
-                        .as_bytes(),
-                )
-                .unwrap();
+              .write_all(
+                  Response::new(StatusCodes::NotFound, None, None)
+                    .build()
+                    .as_bytes(),
+              )
+              .unwrap();
         }
     }
 }
