@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use std::net::TcpStream;
 
 pub struct Request {
     pub headers: Vec<(String, String)>,
-    pub path_parameters: Vec<String>,
+    pub path_parameters: HashMap<String, String>,
     pub method: String,
     pub path: String,
 }
@@ -20,9 +21,18 @@ impl Request {
             .take_while(|line| !line.is_empty())
             .collect();
 
+        if http_request.is_empty() {
+            return Request {
+                headers: Vec::<(String, String)>::new(),
+                path_parameters: HashMap::<String, String>::new(),
+                method: String::new(),
+                path: String::new(),
+            };
+        }
+
         let (method, rest) = http_request
             .first()
-            .unwrap()
+            .unwrap_or_else(|| panic!("Unable to get Method from Http request: {:?}", http_request))
             .split_once(" ")
             .expect("Unable to get Method from Http request");
 
@@ -41,7 +51,7 @@ impl Request {
             headers,
             path: path.to_owned(),
             method: method.to_owned(),
-            path_parameters: Vec::new(),
+            path_parameters: HashMap::<String, String>::new(),
         }
     }
 }

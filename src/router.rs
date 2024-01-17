@@ -14,6 +14,11 @@ pub struct Router {
     routes: Arc<RouteMap>,
 }
 
+pub struct ParsedPathParams {
+    pub route_key: RouteKey,
+    pub params: HashMap<String, String>,
+}
+
 impl Router {
     pub fn new() -> Router {
         Router {
@@ -21,39 +26,65 @@ impl Router {
         }
     }
 
-    pub fn get_route_handler(
-        &self,
-        method: Method,
-        request_endpoint: Endpoint,
-    ) -> Option<RouteHandler> {
-        let matched_path = self.routes.iter().find(|((_, path), _)| {
-            let base_path = match path.split("/*").collect::<Vec<_>>().first() {
-                Some(base_path) => Some(base_path.to_string()),
-                _ => None,
-            };
+    pub fn get_handler_by_endpoint(&self, route_key: RouteKey) -> Option<&RouteHandler> {
+        println!("Routes: {:?}", self.routes.keys());
+        self.routes.get(&route_key)
+    }
 
-            let base_endpoint = match request_endpoint
+    pub fn parse_path_params(&self, req_endpoint: String) -> Option<ParsedPathParams> {
+        let mut path_params = HashMap::<String, String>::new();
+        let mut route_key: Option<(String, String)> = None;
+
+        let splited_req_endpoint = req_endpoint
+            .split("/")
+            .filter(|v| !v.is_empty())
+            .collect::<Vec<&str>>();
+
+        self.routes.keys().for_each(|(method, endpoint)| {
+            let endpoint = endpoint.clone();
+            let splited_defined_enpoint = endpoint
                 .split("/")
-                .collect::<Vec<_>>()
-                .iter()
-                .nth(1)
-            {
-                Some(base_endpoint) => Some(base_endpoint.to_string()),
-                _ => None,
-            };
+                .filter(|v| !v.is_empty())
+                .collect::<Vec<&str>>();
 
-            // FIXME
-            if base_path.is_some() && base_endpoint.is_some() {
-                base_path.unwrap() == format!("/{}", base_endpoint.unwrap())
-            } else {
-                false
+            if route_key.is_some() {
+                return;
+            }
+
+            if splited_req_endpoint.len() != splited_defined_enpoint.len() {
+                return;
+            }
+
+            for (index, endpoint_value) in splited_defined_enpoint.clone().iter().enumerate() {
+                if endpoint_value.contains(":") {
+                    path_params.insert(
+                        endpoint_value.replace(":", ""),
+                        splited_req_endpoint
+                            .clone()
+                            .iter()
+                            .nth(index)
+                            .unwrap()
+                            .to_string(),
+                    );
+                } else if endpoint_value == splited_req_endpoint.clone().iter().nth(index).unwrap()
+                {
+                    route_key = Some((method.clone(), endpoint.clone()));
+                } else {
+                    path_params.clear();
+                    route_key = None;
+                    break;
+                }
             }
         });
 
-        if matched_path.is_some() {
-            Some(matched_path.unwrap().1.clone())
-        } else {
-            self.routes.get(&(method, request_endpoint)).cloned()
+        println!("route_key: {:?}", route_key);
+
+        match route_key {
+            Some(route_key) => Some(ParsedPathParams {
+                route_key,
+                params: path_params,
+            }),
+            _ => None,
         }
     }
 

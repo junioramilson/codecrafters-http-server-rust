@@ -2,6 +2,7 @@ use crate::request::Request;
 use crate::response::{Response, StatusCodes};
 use crate::router::{RouteHandler, Router};
 use nom::AsBytes;
+use std::collections::HashMap;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 
@@ -37,13 +38,28 @@ impl Server {
     fn connection_handler(&self, mut stream: TcpStream) {
         eprintln!("Accepted new connection");
 
-        let http_request = Request::new(&mut stream);
+        let mut http_request = Request::new(&mut stream);
 
         let router = self.router.lock().unwrap().clone();
-        match router.get_route_handler(
-            http_request.method.to_string(),
-            http_request.path.to_string(),
-        ) {
+        let path_params = self
+            .router
+            .lock()
+            .unwrap()
+            .parse_path_params(http_request.path.to_string());
+
+        http_request.path_parameters = match path_params {
+            Some(ref path_params) => path_params.params.clone(),
+            None => HashMap::<String, String>::new(),
+        };
+
+        let route_key = match path_params {
+            Some(ref path_params) => path_params.route_key.clone(),
+            None => (http_request.method.clone(), http_request.path.clone()),
+        };
+
+        println!("Route key: {:?}", route_key);
+
+        match router.get_handler_by_endpoint(route_key) {
             Some(handler) => {
                 let response = handler(http_request);
                 stream.write_all(response.build().as_bytes()).unwrap();
