@@ -51,9 +51,9 @@ impl Router {
                 return;
             }
 
-            if splited_req_endpoint.len() != splited_defined_enpoint.len() {
-                return;
-            }
+            // if splited_req_endpoint.len() != splited_defined_enpoint.len() {
+            //     return;
+            // }
 
             for (index, endpoint_value) in splited_defined_enpoint.clone().iter().enumerate() {
                 if endpoint_value.contains(":") {
