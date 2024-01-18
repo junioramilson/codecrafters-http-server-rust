@@ -58,10 +58,6 @@ impl Router {
                     return;
                 }
 
-                // if splited_req_endpoint.len() != splited_defined_enpoint.len() {
-                //     return;
-                // }
-
                 for (index, endpoint_value) in splited_defined_enpoint.clone().iter().enumerate() {
                     let request_path_by_index = match splited_req_endpoint.clone().iter().nth(index)
                     {
@@ -72,12 +68,7 @@ impl Router {
                     if endpoint_value.contains(":") {
                         path_params.insert(
                             endpoint_value.replace(":", ""),
-                            splited_req_endpoint[index..].join("/"), // splited_req_endpoint
-                                                                     //     .clone()
-                                                                     //     .iter()
-                                                                     //     .nth(index)
-                                                                     //     .unwrap()
-                                                                     //     .to_string(),
+                            splited_req_endpoint[index..].join("/"),
                         );
                     } else if endpoint_value == &request_path_by_index {
                         route_key = Some((method.clone(), endpoint.clone()));

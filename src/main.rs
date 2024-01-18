@@ -127,6 +127,10 @@ async fn main() {
                 .get(&String::from("filename"))
                 .unwrap();
 
+            let body = request.body.unwrap();
+
+            println!("Body: {}", body);
+
             Response::new(
                 StatusCodes::Created,
                 Some(String::from("text/plain")),
