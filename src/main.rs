@@ -128,7 +128,7 @@ async fn main() {
                 .unwrap();
 
             Response::new(
-                StatusCodes::Ok,
+                StatusCodes::Created,
                 Some(String::from("text/plain")),
                 Some(String::from(filename)),
             )

@@ -9,6 +9,7 @@ pub struct Response {
 pub enum StatusCodes {
     Ok = 200,
     NotFound = 404,
+    Created = 201,
 }
 
 impl Response {
@@ -31,6 +32,7 @@ impl Response {
         match self.status_code {
             StatusCodes::Ok => response_vec.extend_from_slice(b"200 OK"),
             StatusCodes::NotFound => response_vec.extend_from_slice(b"404 Not Found"),
+            StatusCodes::Created => response_vec.extend_from_slice(b"201 Created"),
         };
 
         response_vec.extend_from_slice(b"\r\n");
