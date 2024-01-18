@@ -77,13 +77,8 @@ async fn main() {
             let filename = request
                 .path_parameters
                 .get(&String::from("filename"))
-                .unwrap();
-
-            if filename.split("/").count() > 0 && filename.split(".").count() != 2 {
-                return Response::new(StatusCodes::NotFound, None, None);
-            }
-
-            println!("Filename: {}", filename);
+                .unwrap()
+                .replace("/", "_");
 
             let file_directory_clone = file_directory.as_ref().clone().unwrap_or(String::from("/"));
 
@@ -119,7 +114,7 @@ async fn main() {
                     Response::new(
                         StatusCodes::Ok,
                         Some(String::from("application/octet-stream")),
-                        Some(buf.iter().map(|byte| byte.to_string()).collect::<String>()),
+                        Some(String::from_utf8(buf).unwrap()),
                     )
                 }
                 None => return Response::new(StatusCodes::NotFound, None, None),
