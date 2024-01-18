@@ -27,7 +27,6 @@ impl Router {
     }
 
     pub fn get_handler_by_endpoint(&self, route_key: RouteKey) -> Option<&RouteHandler> {
-        println!("Routes: {:?}", self.routes.keys());
         self.routes.get(&route_key)
     }
 
@@ -79,8 +78,6 @@ impl Router {
                     }
                 }
             });
-
-        println!("route_key: {:?}", route_key);
 
         match route_key {
             Some(route_key) => Some(ParsedPathParams {
