@@ -3,7 +3,7 @@ use crate::response::{Response, StatusCodes};
 use crate::router::{RouteHandler, Router};
 use nom::AsBytes;
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 
 use std::sync::{Arc, Mutex};
@@ -41,11 +41,10 @@ impl Server {
         let mut http_request = Request::new(&mut stream);
 
         let router = self.router.lock().unwrap().clone();
-        let path_params = self
-            .router
-            .lock()
-            .unwrap()
-            .parse_path_params(http_request.path.to_string());
+        let path_params = self.router.lock().unwrap().parse_path_params(
+            http_request.method.to_string(),
+            http_request.path.to_string(),
+        );
 
         http_request.path_parameters = match path_params {
             Some(ref path_params) => path_params.params.clone(),

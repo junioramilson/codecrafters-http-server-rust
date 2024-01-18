@@ -5,7 +5,7 @@ mod server;
 
 use std::{
     fs::File,
-    fs::{self, create_dir},
+    fs::{self},
     io::Read,
     sync::Arc,
 };
@@ -22,10 +22,6 @@ async fn main() {
             .find(|arg| arg == "--directory")
             .and_then(|arg| std::env::args().nth(args.iter().position(|x| x == &arg).unwrap() + 1)),
     );
-
-    if let Err(err) = create_dir("test_dir") {
-        eprintln!("Failed to create directory: {}", err);
-    }
 
     let mut server = Server::new("127.0.0.1:4221");
 
@@ -119,6 +115,23 @@ async fn main() {
                 }
                 None => return Response::new(StatusCodes::NotFound, None, None),
             }
+        }),
+    );
+
+    server.add_route(
+        String::from("POST"),
+        String::from("/files/:filename"),
+        Arc::new(move |request: Request| {
+            let filename = request
+                .path_parameters
+                .get(&String::from("filename"))
+                .unwrap();
+
+            Response::new(
+                StatusCodes::Ok,
+                Some(String::from("text/plain")),
+                Some(String::from(filename)),
+            )
         }),
     );
 

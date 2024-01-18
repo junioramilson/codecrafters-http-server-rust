@@ -31,7 +31,11 @@ impl Router {
         self.routes.get(&route_key)
     }
 
-    pub fn parse_path_params(&self, req_endpoint: String) -> Option<ParsedPathParams> {
+    pub fn parse_path_params(
+        &self,
+        req_method: String,
+        req_endpoint: String,
+    ) -> Option<ParsedPathParams> {
         let mut path_params = HashMap::<String, String>::new();
         let mut route_key: Option<(String, String)> = None;
 
@@ -40,46 +44,50 @@ impl Router {
             .filter(|v| !v.is_empty())
             .collect::<Vec<&str>>();
 
-        self.routes.keys().for_each(|(method, endpoint)| {
-            let endpoint = endpoint.clone();
-            let splited_defined_enpoint = endpoint
-                .split("/")
-                .filter(|v| !v.is_empty())
-                .collect::<Vec<&str>>();
+        self.routes
+            .keys()
+            .filter(|(method, _)| method == &req_method)
+            .for_each(|(method, endpoint)| {
+                let endpoint = endpoint.clone();
+                let splited_defined_enpoint = endpoint
+                    .split("/")
+                    .filter(|v| !v.is_empty())
+                    .collect::<Vec<&str>>();
 
-            if route_key.is_some() {
-                return;
-            }
-
-            // if splited_req_endpoint.len() != splited_defined_enpoint.len() {
-            //     return;
-            // }
-
-            for (index, endpoint_value) in splited_defined_enpoint.clone().iter().enumerate() {
-                let request_path_by_index = match splited_req_endpoint.clone().iter().nth(index) {
-                    Some(&request_path_by_index) => request_path_by_index,
-                    None => return,
-                };
-
-                if endpoint_value.contains(":") {
-                    path_params.insert(
-                        endpoint_value.replace(":", ""),
-                        splited_req_endpoint[index..].join("/"), // splited_req_endpoint
-                                                                 //     .clone()
-                                                                 //     .iter()
-                                                                 //     .nth(index)
-                                                                 //     .unwrap()
-                                                                 //     .to_string(),
-                    );
-                } else if endpoint_value == &request_path_by_index {
-                    route_key = Some((method.clone(), endpoint.clone()));
-                } else {
-                    path_params.clear();
-                    route_key = None;
-                    break;
+                if route_key.is_some() {
+                    return;
                 }
-            }
-        });
+
+                // if splited_req_endpoint.len() != splited_defined_enpoint.len() {
+                //     return;
+                // }
+
+                for (index, endpoint_value) in splited_defined_enpoint.clone().iter().enumerate() {
+                    let request_path_by_index = match splited_req_endpoint.clone().iter().nth(index)
+                    {
+                        Some(&request_path_by_index) => request_path_by_index,
+                        None => return,
+                    };
+
+                    if endpoint_value.contains(":") {
+                        path_params.insert(
+                            endpoint_value.replace(":", ""),
+                            splited_req_endpoint[index..].join("/"), // splited_req_endpoint
+                                                                     //     .clone()
+                                                                     //     .iter()
+                                                                     //     .nth(index)
+                                                                     //     .unwrap()
+                                                                     //     .to_string(),
+                        );
+                    } else if endpoint_value == &request_path_by_index {
+                        route_key = Some((method.clone(), endpoint.clone()));
+                    } else {
+                        path_params.clear();
+                        route_key = None;
+                        break;
+                    }
+                }
+            });
 
         println!("route_key: {:?}", route_key);
 

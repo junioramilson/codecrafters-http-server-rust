@@ -7,6 +7,7 @@ pub struct Request {
     pub path_parameters: HashMap<String, String>,
     pub method: String,
     pub path: String,
+    pub body: Option<String>,
 }
 
 impl Request {
@@ -27,6 +28,7 @@ impl Request {
                 path_parameters: HashMap::<String, String>::new(),
                 method: String::new(),
                 path: String::new(),
+                body: None,
             };
         }
 
@@ -49,6 +51,7 @@ impl Request {
 
         Request {
             headers,
+            body: None,
             path: path.to_owned(),
             method: method.to_owned(),
             path_parameters: HashMap::<String, String>::new(),
