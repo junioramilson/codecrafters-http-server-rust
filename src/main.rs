@@ -3,7 +3,12 @@ mod response;
 mod router;
 mod server;
 
-use std::{fs::create_dir, fs::File, io::Read, sync::Arc};
+use std::{
+    fs::File,
+    fs::{self, create_dir},
+    io::Read,
+    sync::Arc,
+};
 
 use crate::server::Server;
 use request::Request;
@@ -80,26 +85,45 @@ async fn main() {
 
             println!("Filename: {}", filename);
 
-            let file_directory_clone = file_directory.as_ref().clone();
+            let file_directory_clone = file_directory.as_ref().clone().unwrap_or(String::from("/"));
 
-            let file = File::open(format!(
-                "{}/{}",
-                file_directory_clone.unwrap_or(String::from("/")),
-                filename
-            ));
+            let file =
+                fs::read_dir(file_directory_clone.clone())
+                    .unwrap()
+                    .find(|entry| match entry {
+                        Ok(entry) => {
+                            entry
+                                .file_name()
+                                .to_str()
+                                .unwrap()
+                                .split(".")
+                                .collect::<Vec<&str>>()[0]
+                                == filename
+                        }
+                        _ => false,
+                    });
 
-            if file.is_err() {
-                return Response::new(StatusCodes::NotFound, None, None);
+            match file {
+                Some(file) => {
+                    let found_filename = file.unwrap().file_name();
+                    let file = File::open(format!(
+                        "{}/{}",
+                        file_directory_clone.clone(),
+                        found_filename.to_str().unwrap()
+                    ));
+
+                    let mut buf = Vec::<u8>::new();
+
+                    file.unwrap().read_to_end(&mut buf);
+
+                    Response::new(
+                        StatusCodes::Ok,
+                        Some(String::from("application/octet-stream")),
+                        Some(buf.iter().map(|byte| byte.to_string()).collect::<String>()),
+                    )
+                }
+                None => return Response::new(StatusCodes::NotFound, None, None),
             }
-
-            let mut file_content = String::new();
-            file.unwrap().read_to_string(&mut file_content);
-
-            Response::new(
-                StatusCodes::Ok,
-                Some(String::from("application/octet-stream")),
-                Some(file_content),
-            )
         }),
     );
 
