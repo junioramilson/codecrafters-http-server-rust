@@ -59,12 +59,12 @@ impl Router {
                 if endpoint_value.contains(":") {
                     path_params.insert(
                         endpoint_value.replace(":", ""),
-                        splited_req_endpoint
-                            .clone()
-                            .iter()
-                            .nth(index)
-                            .unwrap()
-                            .to_string(),
+                        splited_req_endpoint[index..].join("/"), // splited_req_endpoint
+                                                                 //     .clone()
+                                                                 //     .iter()
+                                                                 //     .nth(index)
+                                                                 //     .unwrap()
+                                                                 //     .to_string(),
                     );
                 } else if endpoint_value == splited_req_endpoint.clone().iter().nth(index).unwrap()
                 {
