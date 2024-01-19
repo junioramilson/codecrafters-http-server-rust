@@ -41,7 +41,7 @@ impl Server {
         let mut http_request = Request::new(&mut stream);
 
         let router = self.router.lock().unwrap().clone();
-        let path_params = self.router.lock().unwrap().parse_path_params(
+        let path_params = router.parse_path_params(
             http_request.method.to_string(),
             http_request.path.to_string(),
         );

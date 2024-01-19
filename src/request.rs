@@ -1,8 +1,9 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::net::TcpStream;
 
 use itertools::Itertools;
+use nom::InputTake;
 
 pub struct Request {
     pub headers: Vec<(String, String)>,
@@ -14,13 +15,13 @@ pub struct Request {
 
 impl Request {
     pub fn new(stream: &mut TcpStream) -> Request {
-        let buff_reader = BufReader::new(stream);
+        let mut buffer = [0u8; 4096];
+        stream.read(&mut buffer);
 
-        eprintln!("Reading request: {:?}", buff_reader);
+        let request_lines = String::from_utf8_lossy(&buffer);
+        let lines = request_lines.split("\r\n").collect::<Vec<&str>>();
 
-        let http_request: Vec<_> = buff_reader.lines().map(|result| result.unwrap()).collect();
-
-        if http_request.is_empty() {
+        if lines.len() == 0 {
             return Request {
                 headers: Vec::<(String, String)>::new(),
                 path_parameters: HashMap::<String, String>::new(),
@@ -30,36 +31,48 @@ impl Request {
             };
         }
 
-        let (method, rest) = http_request
+        let first_line = lines
             .first()
-            .unwrap_or_else(|| panic!("Unable to get Method from Http request: {:?}", http_request))
-            .split_once(" ")
-            .expect("Unable to get Method from Http request");
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<&str>>();
 
-        let (path, _) = rest
-            .split_once(" ")
-            .expect("Unable to get Path from Http request");
+        let method = first_line.get(0).unwrap().to_string();
+        let path = first_line.get(1).unwrap().to_string();
+        let http_version = first_line.get(2).unwrap().to_string();
 
-        let headers = http_request
+        println!("Http version: {}", http_version);
+
+        let mut headers = Vec::<(String, String)>::new();
+
+        for line in lines.iter().skip(1) {
+            match line.split_once(": ") {
+                Some((header, value)) => headers.push((header.to_string(), value.to_string())),
+                None => continue,
+            }
+        }
+
+        let content_length = headers
             .iter()
-            .skip(1)
-            .take_while(|item| !item.is_empty())
-            .map(|header| header.split_once(": ").unwrap())
-            .map(|(header, value)| (header.to_string(), value.to_string()))
-            .collect::<Vec<_>>();
+            .find(|(header, _)| header == &"Content-Length")
+            .map(|(_, value)| value.parse::<usize>().unwrap_or(0))
+            .unwrap_or(0);
 
-        let body = http_request
+        let body = lines
             .iter()
             .skip_while(|item| !item.is_empty())
             .skip(1)
-            .join("\n");
+            .collect::<Vec<&&str>>()
+            .get(0)
+            .unwrap()
+            .take(content_length);
 
         Request {
             headers,
-            body: Some(body),
-            path: path.to_owned(),
-            method: method.to_owned(),
             path_parameters: HashMap::<String, String>::new(),
+            method,
+            path,
+            body: Some(body.to_owned()),
         }
     }
 }
