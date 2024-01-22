@@ -28,6 +28,9 @@ impl Response {
             StatusCodes::Ok => response_vec.extend_from_slice(b"200 OK"),
             StatusCodes::NotFound => response_vec.extend_from_slice(b"404 Not Found"),
             StatusCodes::Created => response_vec.extend_from_slice(b"201 Created"),
+            StatusCodes::InternalServerError => {
+                response_vec.extend_from_slice(b"500 Internal Server Error")
+            }
         };
 
         response_vec.extend_from_slice(b"\r\n");
@@ -49,5 +52,46 @@ impl Response {
         response_vec.extend_from_slice(b"\r\n");
 
         response_vec
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_complete_build_response() {
+        let body = String::from("test response");
+        let response = Response::new(
+            StatusCodes::Ok,
+            Some(String::from("text/plain")),
+            Some(body.clone()),
+        );
+
+        let expected_response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}\r\n",
+            body.len(),
+            body,
+        );
+
+        assert_eq!(response.build(), expected_response.as_bytes());
+    }
+
+    #[test]
+    fn test_build_response_without_body() {
+        let response = Response::new(StatusCodes::Ok, None, None);
+
+        let expected_response = b"HTTP/1.1 200 OK\r\n\r\n";
+
+        assert_eq!(response.build(), expected_response);
+    }
+
+    #[test]
+    fn test_build_response_without_content_type() {
+        let response = Response::new(StatusCodes::Ok, None, Some(String::from("Hello, world!")));
+
+        let expected_response = b"HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, world!\r\n";
+
+        assert_eq!(response.build(), expected_response);
     }
 }

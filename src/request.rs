@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Read};
-use std::net::TcpStream;
-
-use itertools::Itertools;
 use nom::InputTake;
+use std::collections::HashMap;
+use std::io::{Error, Read};
+use std::net::TcpStream;
 
 pub struct Request {
     pub headers: Vec<(String, String)>,
@@ -14,21 +12,21 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(stream: &mut TcpStream) -> Request {
+    pub fn new(stream: &mut TcpStream) -> Result<Request, Error> {
         let mut buffer = [0u8; 4096];
-        stream.read(&mut buffer);
+        stream.read(&mut buffer)?;
 
         let request_lines = String::from_utf8_lossy(&buffer);
         let lines = request_lines.split("\r\n").collect::<Vec<&str>>();
 
         if lines.len() == 0 {
-            return Request {
+            return Ok(Request {
                 headers: Vec::<(String, String)>::new(),
                 path_parameters: HashMap::<String, String>::new(),
                 method: String::new(),
                 path: String::new(),
                 body: None,
-            };
+            });
         }
 
         let first_line = lines
@@ -39,7 +37,6 @@ impl Request {
 
         let method = first_line.get(0).unwrap().to_string();
         let path = first_line.get(1).unwrap().to_string();
-        let http_version = first_line.get(2).unwrap().to_string();
 
         let mut headers = Vec::<(String, String)>::new();
 
@@ -65,12 +62,12 @@ impl Request {
             .unwrap()
             .take(content_length);
 
-        Request {
+        Ok(Request {
             headers,
             path_parameters: HashMap::<String, String>::new(),
             method,
             path,
             body: Some(body.to_owned()),
-        }
+        })
     }
 }

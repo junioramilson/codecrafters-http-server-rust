@@ -5,6 +5,7 @@ pub enum StatusCodes {
     Ok = 200,
     NotFound = 404,
     Created = 201,
+    InternalServerError = 500,
 }
 
 pub enum HttpMethod {

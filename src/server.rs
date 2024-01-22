@@ -39,7 +39,21 @@ impl Server {
     fn connection_handler(&self, mut stream: TcpStream) {
         println!("Accepted new connection");
 
-        let mut http_request = Request::new(&mut stream);
+        let http_request = Request::new(&mut stream);
+
+        if let Err(e) = http_request {
+            eprintln!("Error while parsing request: {}", e);
+            stream
+                .write_all(
+                    Response::new(StatusCodes::InternalServerError, None, None)
+                        .build()
+                        .as_bytes(),
+                )
+                .unwrap();
+            return;
+        }
+
+        let mut http_request = http_request.unwrap();
 
         let router = self.router.lock().unwrap().clone();
         let path_params = router.parse_path_params(
