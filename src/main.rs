@@ -41,7 +41,6 @@ async fn main() {
     });
     server.add_route(HttpMethod::Get, "/echo/:value", &|request: Request| {
         let echo_value = request.path_parameters.get(&String::from("value")).unwrap();
-        eprintln!("Echo value: {}", echo_value);
 
         Response::new(
             StatusCodes::Ok,

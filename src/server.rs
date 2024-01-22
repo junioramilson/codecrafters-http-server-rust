@@ -37,7 +37,7 @@ impl Server {
     }
 
     fn connection_handler(&self, mut stream: TcpStream) {
-        eprintln!("Accepted new connection");
+        println!("Accepted new connection");
 
         let mut http_request = Request::new(&mut stream);
 
@@ -82,7 +82,7 @@ impl Server {
     }
 
     pub fn start(self) {
-        eprintln!(
+        println!(
             "Server started on {}",
             self.tcp_listener.local_addr().unwrap()
         );
@@ -96,7 +96,7 @@ impl Server {
                     });
                 }
                 Err(e) => {
-                    println!("TcpServer error: {}", e);
+                    eprintln!("TcpServer error: {}", e);
                 }
             }
         }

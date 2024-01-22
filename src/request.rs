@@ -41,8 +41,6 @@ impl Request {
         let path = first_line.get(1).unwrap().to_string();
         let http_version = first_line.get(2).unwrap().to_string();
 
-        println!("Http version: {}", http_version);
-
         let mut headers = Vec::<(String, String)>::new();
 
         for line in lines.iter().skip(1) {
