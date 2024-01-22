@@ -1,15 +1,10 @@
+use crate::http::StatusCodes;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Response {
     pub body: Option<String>,
     pub content_type: Option<String>,
     pub status_code: StatusCodes,
-}
-
-#[derive(PartialEq, Debug, Eq)]
-pub enum StatusCodes {
-    Ok = 200,
-    NotFound = 404,
-    Created = 201,
 }
 
 impl Response {

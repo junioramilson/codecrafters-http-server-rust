@@ -1,9 +1,10 @@
+use crate::http::{HttpMethod, StatusCodes};
 use crate::request::Request;
-use crate::response::{Response, StatusCodes};
+use crate::response::Response;
 use crate::router::{RouteHandler, Router};
 use nom::AsBytes;
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 
 use std::sync::{Arc, Mutex};
@@ -23,14 +24,14 @@ impl Server {
 
     pub fn add_route(
         &mut self,
-        method: String,
-        endpoint: String,
-        handler: RouteHandler,
+        method: HttpMethod,
+        endpoint: &str,
+        handler: &'static RouteHandler,
     ) -> &Server {
         let mut router = self.router.lock().unwrap();
         Arc::get_mut(&mut router)
             .unwrap()
-            .add_route(method, endpoint, handler.clone());
+            .add_route(method, endpoint.to_string(), handler);
 
         self
     }

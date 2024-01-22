@@ -1,13 +1,13 @@
+use crate::http::HttpMethod;
 use crate::request::Request;
 use crate::response::Response;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub type RouteHandler = Arc<dyn Fn(Request) -> Response + Send + Sync>;
+pub type RouteHandler = dyn Fn(Request) -> Response + Send + Sync;
 pub type Endpoint = String;
-pub type Method = String;
-pub type RouteKey = (Method, Endpoint);
-pub type RouteMap = HashMap<RouteKey, RouteHandler>;
+pub type RouteKey = (String, Endpoint);
+pub type RouteMap = HashMap<RouteKey, Arc<RouteHandler>>;
 
 #[derive(Clone)]
 pub struct Router {
@@ -26,7 +26,7 @@ impl Router {
         }
     }
 
-    pub fn get_handler_by_endpoint(&self, route_key: RouteKey) -> Option<&RouteHandler> {
+    pub fn get_handler_by_endpoint(&self, route_key: RouteKey) -> Option<&Arc<RouteHandler>> {
         self.routes.get(&route_key)
     }
 
@@ -90,11 +90,11 @@ impl Router {
 
     pub fn add_route(
         &mut self,
-        method: Method,
+        method: HttpMethod,
         endpoint: Endpoint,
-        handler: RouteHandler,
+        handler: &'static RouteHandler,
     ) -> &Router {
-        Arc::make_mut(&mut self.routes).insert((method, endpoint), handler);
+        Arc::make_mut(&mut self.routes).insert((method.to_string(), endpoint), Arc::new(handler));
 
         self
     }

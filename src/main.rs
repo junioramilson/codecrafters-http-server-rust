@@ -1,3 +1,4 @@
+mod http;
 mod request;
 mod response;
 mod router;
@@ -7,62 +8,51 @@ use std::{
     fs::File,
     fs::{self},
     io::{Read, Write},
-    sync::Arc,
 };
 
 use crate::server::Server;
+use http::{HttpMethod, StatusCodes};
 use request::Request;
-use response::{Response, StatusCodes};
+use response::Response;
 
 #[tokio::main]
 async fn main() {
     let mut server = Server::new("127.0.0.1:4221");
 
-    server.add_route(
-        String::from("GET"),
-        String::from("/"),
-        Arc::new(&|_| Response::new(StatusCodes::Ok, None, None)),
-    );
-    server.add_route(
-        String::from("GET"),
-        String::from("/user-agent"),
-        Arc::new(&|request: Request| {
-            let (_, user_agent_value) = request
-                .headers
-                .iter()
-                .find(|(header, _)| header == &"User-Agent")
-                .unwrap();
+    server.add_route(HttpMethod::Get, "/", &|_| {
+        Response::new(StatusCodes::Ok, None, None)
+    });
 
-            Response::new(
-                StatusCodes::Ok,
-                Some(String::from("text/plain")),
-                Some(user_agent_value.to_string()),
-            )
-        }),
-    );
-    server.add_route(
-        String::from("GET"),
-        String::from("/"),
-        Arc::new(&|_| Response::new(StatusCodes::Ok, None, None)),
-    );
-    server.add_route(
-        String::from("GET"),
-        String::from("/echo/:value"),
-        Arc::new(&|request: Request| {
-            let echo_value = request.path_parameters.get(&String::from("value")).unwrap();
-            eprintln!("Echo value: {}", echo_value);
+    server.add_route(HttpMethod::Get, "/user-agent", &|request: Request| {
+        let (_, user_agent_value) = request
+            .headers
+            .iter()
+            .find(|(header, _)| header == &"User-Agent")
+            .unwrap();
 
-            Response::new(
-                StatusCodes::Ok,
-                Some(String::from("text/plain")),
-                Some(String::from(echo_value)),
-            )
-        }),
-    );
+        Response::new(
+            StatusCodes::Ok,
+            Some(String::from("text/plain")),
+            Some(user_agent_value.to_string()),
+        )
+    });
+    server.add_route(HttpMethod::Get, "/", &|_| {
+        Response::new(StatusCodes::Ok, None, None)
+    });
+    server.add_route(HttpMethod::Get, "/echo/:value", &|request: Request| {
+        let echo_value = request.path_parameters.get(&String::from("value")).unwrap();
+        eprintln!("Echo value: {}", echo_value);
+
+        Response::new(
+            StatusCodes::Ok,
+            Some(String::from("text/plain")),
+            Some(String::from(echo_value)),
+        )
+    });
     server.add_route(
-        String::from("GET"),
-        String::from("/files/:filename"),
-        Arc::new(move |request: Request| {
+        HttpMethod::Get,
+        "/files/:filename",
+        &move |request: Request| {
             let filename = request
                 .path_parameters
                 .get(&String::from("filename"))
@@ -112,13 +102,13 @@ async fn main() {
                 }
                 None => return Response::new(StatusCodes::NotFound, None, None),
             }
-        }),
+        },
     );
 
     server.add_route(
-        String::from("POST"),
-        String::from("/files/:filename"),
-        Arc::new(move |request: Request| {
+        HttpMethod::Post,
+        "/files/:filename",
+        &move |request: Request| {
             let filename = request
                 .path_parameters
                 .get(&String::from("filename"))
@@ -143,7 +133,7 @@ async fn main() {
                 Some(String::from("text/plain")),
                 Some(String::from(filename)),
             )
-        }),
+        },
     );
 
     server.start();
